@@ -279,8 +279,7 @@
       "noAudio": {
         "title": "Nenhum áudio detectado",
         "description": "A gravação não contém áudio detectável. Tente novamente."
-      },
-      "noTranscription": "Nenhuma transcrição disponível"
+      }
     },
     "clipboard": {
       "pasteFailed": {

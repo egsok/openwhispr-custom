@@ -96,8 +96,6 @@ export const useAudioRecording = (toast, options = {}) => {
           const transcribedText = result.text?.trim();
 
           if (!transcribedText) {
-            const fallback = t("hooks.audioRecording.noTranscription");
-            await audioManagerRef.current.safePaste(fallback);
             return;
           }
 
