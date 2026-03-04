@@ -12,8 +12,6 @@ interface UseMeetingTranscriptionReturn {
 
 const getSystemAudioStream = async (): Promise<MediaStream | null> => {
   try {
-    // Use getDisplayMedia (handled by setDisplayMediaRequestHandler in main process)
-    // which properly captures system audio via macOS ScreenCaptureKit loopback.
     const stream = await navigator.mediaDevices.getDisplayMedia({
       audio: true,
       video: true,
@@ -126,22 +124,30 @@ export function useMeetingTranscription(): UseMeetingTranscriptionReturn {
 
     logger.info("Meeting transcription starting...", {}, "meeting");
 
+    setTranscript("");
+    setPartialTranscript("");
+    setError(null);
+
     try {
-      const startResult = await window.electronAPI?.meetingTranscriptionStart?.({
-        provider: "openai-realtime",
-        model: "gpt-4o-mini-transcribe",
-      });
+      const [startResult, stream] = await Promise.all([
+        window.electronAPI?.meetingTranscriptionStart?.({
+          provider: "openai-realtime",
+          model: "gpt-4o-mini-transcribe",
+        }),
+        getSystemAudioStream(),
+      ]);
+
       if (!startResult?.success) {
         logger.error(
           "Meeting transcription IPC start failed",
           { error: startResult?.error },
           "meeting"
         );
+        stream?.getTracks().forEach((t) => t.stop());
         isStartingRef.current = false;
         return;
       }
 
-      const stream = await getSystemAudioStream();
       if (!stream) {
         logger.error("Could not capture system audio for meeting transcription", {}, "meeting");
         await window.electronAPI?.meetingTranscriptionStop?.();
@@ -163,10 +169,6 @@ export function useMeetingTranscription(): UseMeetingTranscriptionReturn {
       const scriptNode = audioContext.createScriptProcessor(4096, 1, 1);
       scriptNodeRef.current = scriptNode;
 
-      setTranscript("");
-      setPartialTranscript("");
-      setError(null);
-
       const partialCleanup = window.electronAPI?.onMeetingTranscriptionPartial?.((text) => {
         setPartialTranscript(text);
       });
@@ -183,6 +185,9 @@ export function useMeetingTranscription(): UseMeetingTranscriptionReturn {
         logger.error("Meeting transcription stream error", { error: err }, "meeting");
       });
       if (errorCleanup) ipcCleanupsRef.current.push(errorCleanup);
+
+      const audioBuffer: ArrayBuffer[] = [];
+      let socketReady = false;
 
       let audioCheckCount = 0;
       scriptNode.onaudioprocess = (event) => {
@@ -204,7 +209,12 @@ export function useMeetingTranscription(): UseMeetingTranscriptionReturn {
           );
         }
         audioCheckCount++;
-        window.electronAPI?.meetingTranscriptionSend?.(pcm.buffer);
+
+        if (socketReady) {
+          window.electronAPI?.meetingTranscriptionSend?.(pcm.buffer);
+        } else {
+          audioBuffer.push(pcm.buffer.slice(0));
+        }
       };
 
       source.connect(scriptNode);
@@ -213,7 +223,16 @@ export function useMeetingTranscription(): UseMeetingTranscriptionReturn {
       isRecordingRef.current = true;
       isStartingRef.current = false;
       setIsRecording(true);
-      logger.info("Meeting transcription started successfully", {}, "meeting");
+
+      for (const chunk of audioBuffer) {
+        window.electronAPI?.meetingTranscriptionSend?.(chunk);
+      }
+      socketReady = true;
+      logger.info(
+        "Meeting transcription started successfully",
+        { bufferedChunks: audioBuffer.length },
+        "meeting"
+      );
     } catch (err) {
       logger.error(
         "Meeting transcription setup failed",
