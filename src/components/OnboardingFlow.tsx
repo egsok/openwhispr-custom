@@ -392,6 +392,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       onRequest={permissionsHook.testAccessibilityPermission}
                       buttonText={t("onboarding.permissions.testAndGrant")}
                       onOpenSettings={permissionsHook.openAccessibilitySettings}
+                      openSettingsText={t("onboarding.permissions.openSystemSettings")}
                     />
                   )}
                 </div>
@@ -535,6 +536,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   onRequest={permissionsHook.testAccessibilityPermission}
                   buttonText={t("onboarding.permissions.testAndGrant")}
                   onOpenSettings={permissionsHook.openAccessibilitySettings}
+                  openSettingsText={t("onboarding.permissions.openSystemSettings")}
                 />
               )}
             </div>

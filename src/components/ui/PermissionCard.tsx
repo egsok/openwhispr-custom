@@ -1,5 +1,5 @@
 import { Button } from "./button";
-import { Check, LucideIcon, Settings } from "lucide-react";
+import { Check, ExternalLink, LucideIcon, Settings } from "lucide-react";
 import { cn } from "../lib/utils";
 
 interface PermissionCardProps {
@@ -10,6 +10,7 @@ interface PermissionCardProps {
   onRequest: () => void;
   buttonText?: string;
   onOpenSettings?: () => void;
+  openSettingsText?: string;
 }
 
 export default function PermissionCard({
@@ -20,6 +21,7 @@ export default function PermissionCard({
   onRequest,
   buttonText = "Grant Access",
   onOpenSettings,
+  openSettingsText,
 }: PermissionCardProps) {
   return (
     <div
@@ -57,13 +59,27 @@ export default function PermissionCard({
         {/* Actions - only when not granted */}
         {!granted && (
           <div className="flex items-center gap-1.5 shrink-0">
-            <Button onClick={onRequest} size="sm" className="h-7 px-3 text-xs">
-              {buttonText}
-            </Button>
-            {onOpenSettings && (
-              <Button onClick={onOpenSettings} size="sm" variant="ghost" className="h-7 w-7 p-0">
-                <Settings className="w-3.5 h-3.5" />
+            {onOpenSettings && openSettingsText ? (
+              <Button onClick={onOpenSettings} size="sm" className="h-7 px-3 text-xs">
+                <ExternalLink className="w-3 h-3" />
+                {openSettingsText}
               </Button>
+            ) : (
+              <>
+                <Button onClick={onRequest} size="sm" className="h-7 px-3 text-xs">
+                  {buttonText}
+                </Button>
+                {onOpenSettings && (
+                  <Button
+                    onClick={onOpenSettings}
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 w-7 p-0"
+                  >
+                    <Settings className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </>
             )}
           </div>
         )}
