@@ -450,6 +450,29 @@ class ClipboardManager {
     }
   }
 
+  _saveClipboard() {
+    const formats = clipboard.availableFormats();
+    if (formats.some((f) => f.startsWith("image/"))) {
+      return { type: "image", data: clipboard.readImage() };
+    } else if (formats.includes("text/html")) {
+      return { type: "html", text: clipboard.readText(), html: clipboard.readHTML() };
+    } else {
+      return { type: "text", data: clipboard.readText() };
+    }
+  }
+
+  _restoreClipboard(original) {
+    if (!original) return;
+    if (original.type === "image") {
+      if (!original.data.isEmpty()) clipboard.writeImage(original.data);
+    } else if (original.type === "html") {
+      clipboard.write({ text: original.text, html: original.html });
+    } else {
+      clipboard.writeText(original.data);
+    }
+    this.safeLog("🔄 Clipboard restored");
+  }
+
   async pasteText(text, options = {}) {
     const startTime = Date.now();
     const platform = process.platform;
@@ -457,11 +480,8 @@ class ClipboardManager {
     const webContents = options.webContents;
 
     try {
-      const originalClipboard = clipboard.readText();
-      this.safeLog(
-        "💾 Saved original clipboard content:",
-        originalClipboard.substring(0, 50) + "..."
-      );
+      const originalClipboard = this._saveClipboard();
+      this.safeLog("💾 Saved original clipboard:", originalClipboard.type);
 
       if (platform === "linux" && this._isWayland()) {
         this._writeClipboardWayland(text, webContents);
@@ -550,7 +570,7 @@ class ClipboardManager {
           if (code === 0) {
             this.safeLog(`Text pasted successfully via ${useFastPaste ? "CGEvent" : "osascript"}`);
             setTimeout(() => {
-              clipboard.writeText(originalClipboard);
+              this._restoreClipboard(originalClipboard);
             }, RESTORE_DELAYS.darwin);
             resolve();
           } else if (useFastPaste) {
@@ -614,7 +634,7 @@ class ClipboardManager {
         if (code === 0) {
           this.safeLog("Text pasted successfully via osascript fallback");
           setTimeout(() => {
-            clipboard.writeText(originalClipboard);
+            this._restoreClipboard(originalClipboard);
           }, RESTORE_DELAYS.darwin);
           resolve();
         } else {
@@ -692,8 +712,7 @@ class ClipboardManager {
               output,
             });
             setTimeout(() => {
-              clipboard.writeText(originalClipboard);
-              this.safeLog("🔄 Clipboard restored");
+              this._restoreClipboard(originalClipboard);
             }, RESTORE_DELAYS.win32_nircmd);
             resolve();
           } else {
@@ -765,8 +784,7 @@ class ClipboardManager {
               restoreDelayMs: restoreDelay,
             });
             setTimeout(() => {
-              clipboard.writeText(originalClipboard);
-              this.safeLog("🔄 Clipboard restored");
+              this._restoreClipboard(originalClipboard);
             }, restoreDelay);
             resolve();
           } else {
@@ -841,8 +859,7 @@ class ClipboardManager {
               restoreDelayMs: restoreDelay,
             });
             setTimeout(() => {
-              clipboard.writeText(originalClipboard);
-              this.safeLog("🔄 Clipboard restored");
+              this._restoreClipboard(originalClipboard);
             }, restoreDelay);
             resolve();
           } else {
@@ -924,9 +941,13 @@ class ClipboardManager {
     const restoreClipboard = () => {
       setTimeout(() => {
         if (isWayland) {
-          this._writeClipboardWayland(originalClipboard, webContents);
+          if (originalClipboard.type === "text") {
+            this._writeClipboardWayland(originalClipboard.data, webContents);
+          } else {
+            this._restoreClipboard(originalClipboard);
+          }
         } else {
-          clipboard.writeText(originalClipboard);
+          this._restoreClipboard(originalClipboard);
         }
       }, RESTORE_DELAYS.linux);
     };
