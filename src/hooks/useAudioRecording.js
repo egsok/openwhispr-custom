@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, createElement } from "react";
 import { useTranslation } from "react-i18next";
 import AudioManager from "../helpers/audioManager";
 import logger from "../utils/logger";
@@ -84,12 +84,52 @@ export const useAudioRecording = (toast, options = {}) => {
       },
       onError: (error) => {
         const title = getRecordingErrorTitle(error, t);
-        toast({
+        const toastProps = {
           title,
           description: error.description,
           variant: "destructive",
           duration: error.code === "AUTH_EXPIRED" ? 8000 : undefined,
-        });
+        };
+
+        if (error.backupFilename) {
+          toastProps.duration = 15000;
+          toastProps.action = createElement(
+            "button",
+            {
+              className:
+                "px-2 py-1 text-xs font-medium rounded bg-white/10 hover:bg-white/20 text-white/80 transition-colors",
+              onClick: async () => {
+                try {
+                  const result = await window.electronAPI.retryTranscriptionFromBackup(
+                    error.backupFilename,
+                    {}
+                  );
+                  if (result.success && result.text) {
+                    setTranscript(result.text);
+                    await audioManagerRef.current?.safePaste(result.text, {});
+                    audioManagerRef.current?.saveTranscription(result.text, result.text);
+                    toast({ title: t("hooks.audioRecording.retrySuccess", "Retry succeeded"), variant: "success" });
+                  } else {
+                    toast({
+                      title: t("hooks.audioRecording.retryFailed", "Retry failed"),
+                      description: result.error,
+                      variant: "destructive",
+                    });
+                  }
+                } catch (retryErr) {
+                  toast({
+                    title: t("hooks.audioRecording.retryFailed", "Retry failed"),
+                    description: retryErr.message,
+                    variant: "destructive",
+                  });
+                }
+              },
+            },
+            "Повторить"
+          );
+        }
+
+        toast(toastProps);
         if (getSettings().pauseMediaOnDictation) {
           window.electronAPI?.resumeMediaPlayback?.();
         }

@@ -24,6 +24,7 @@ const PERSISTED_KEYS = [
   "FLOATING_ICON_AUTO_HIDE",
   "UI_LANGUAGE",
   "WHISPER_CUDA_ENABLED",
+  "AUDIO_BACKUP_DIR",
 ];
 
 class EnvironmentManager {

@@ -10,6 +10,7 @@ const AssemblyAiStreaming = require("./assemblyAiStreaming");
 const { i18nMain, changeLanguage } = require("./i18nMain");
 const DeepgramStreaming = require("./deepgramStreaming");
 const AudioStorageManager = require("./audioStorage");
+const AudioBackupManager = require("./audioBackup");
 
 const MISTRAL_TRANSCRIPTION_URL = "https://api.mistral.ai/v1/audio/transcriptions";
 
@@ -108,6 +109,8 @@ class IPCHandlers {
     this._autoLearnLatestData = null;
     this._textEditHandler = null;
     this.audioStorageManager = new AudioStorageManager();
+    this.audioBackupManager = new AudioBackupManager(app.getPath("userData"));
+    this.audioBackupManager.restoreFromEnv();
     this._audioCleanupInterval = null;
     this._setupTextEditMonitor();
     this._setupAudioCleanup();
@@ -778,6 +781,19 @@ class IPCHandlers {
         options,
       });
 
+      // Save audio backup (fire-and-forget, never blocks transcription)
+      let backupFilename = null;
+      try {
+        const buf = Buffer.isBuffer(audioBlob) ? audioBlob : Buffer.from(audioBlob);
+        backupFilename = await this.audioBackupManager.saveAudio(buf, {
+          language: options.language,
+          model: options.model,
+        });
+        this.audioBackupManager.rotateFiles().catch(() => {});
+      } catch (backupErr) {
+        debugLogger.error("Audio backup failed (non-blocking)", { error: backupErr.message });
+      }
+
       try {
         const result = await this.whisperManager.transcribeLocalWhisper(audioBlob, options);
 
@@ -805,6 +821,7 @@ class IPCHandlers {
             success: false,
             error: "ffmpeg_not_found",
             message: "FFmpeg is missing. Please reinstall the app or install FFmpeg manually.",
+            backupFilename,
           };
         }
         if (
@@ -815,16 +832,20 @@ class IPCHandlers {
             success: false,
             error: "ffmpeg_error",
             message: "Audio conversion failed. The recording may be corrupted.",
+            backupFilename,
           };
         }
         if (
           errorMessage.includes("whisper.cpp not found") ||
-          errorMessage.includes("whisper-cpp")
+          errorMessage.includes("whisper-cpp") ||
+          errorMessage.includes("whisper-server") ||
+          errorMessage.includes("binary not found")
         ) {
           return {
             success: false,
             error: "whisper_not_found",
             message: "Whisper binary is missing. Please reinstall the app.",
+            backupFilename,
           };
         }
         if (
@@ -835,6 +856,7 @@ class IPCHandlers {
             success: false,
             error: "no_audio_data",
             message: "No audio detected",
+            backupFilename,
           };
         }
         if (errorMessage.includes("model") && errorMessage.includes("not downloaded")) {
@@ -842,10 +864,16 @@ class IPCHandlers {
             success: false,
             error: "model_not_found",
             message: errorMessage,
+            backupFilename,
           };
         }
 
-        throw error;
+        return {
+          success: false,
+          error: errorMessage,
+          message: errorMessage,
+          backupFilename,
+        };
       }
     });
 
@@ -2085,6 +2113,59 @@ class IPCHandlers {
         );
         return { success: false, error: error.message };
       }
+    });
+
+    // --- Audio backup IPC handlers ---
+
+    ipcMain.handle("retry-transcription-from-backup", async (_event, filename, options = {}) => {
+      try {
+        const buffer = await this.audioBackupManager.getBackupBuffer(filename);
+
+        let result;
+        if (this.parakeetManager?.serverManager?.isAvailable?.()) {
+          result = await this.parakeetManager.transcribeLocalParakeet(buffer, options);
+        } else if (this.whisperManager?.serverManager?.isAvailable?.()) {
+          result = await this.whisperManager.transcribeLocalWhisper(buffer, options);
+        }
+
+        if (!result?.text) {
+          return { success: false, error: "No transcription engine available" };
+        }
+
+        return { success: true, text: result.text, source: result.source || "local" };
+      } catch (error) {
+        debugLogger.error("Retry from backup failed", { filename, error: error.message });
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle("list-audio-backups", async () => {
+      try {
+        return await this.audioBackupManager.listBackups();
+      } catch (error) {
+        debugLogger.error("List audio backups failed", { error: error.message });
+        return [];
+      }
+    });
+
+    ipcMain.handle("get-audio-backup-dir", () => {
+      return this.audioBackupManager.getBackupDir();
+    });
+
+    ipcMain.handle("set-audio-backup-dir", async (_event, newDir) => {
+      try {
+        this.audioBackupManager.setBackupDir(newDir);
+        await this.environmentManager.saveAllKeysToEnvFile();
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle("open-audio-backup-dir", async () => {
+      const dir = this.audioBackupManager.getBackupDir();
+      await shell.openPath(dir);
+      return { success: true };
     });
 
     ipcMain.handle("update-transcription-text", async (_event, id, text, rawText) => {

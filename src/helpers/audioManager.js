@@ -14,6 +14,11 @@ import {
 const SHORT_CLIP_DURATION_SECONDS = 2.5;
 const REASONING_CACHE_TTL = 30000; // 30 seconds
 
+// Punctuation prompt for Russian — Whisper tends to drop punctuation for Russian speech.
+// Providing a prompt with varied punctuation nudges the autoregressive decoder to keep producing it.
+const PUNCTUATION_PROMPT_RU =
+  'Итак, давайте начнём. Сегодня мы обсудим важные вещи, которые помогут вам разобраться в ситуации. Вот основные вопросы: что делать? как быть? и куда двигаться дальше.';
+
 const PLACEHOLDER_KEYS = {
   openai: "your_openai_api_key_here",
   groq: "your_groq_api_key_here",
@@ -149,6 +154,23 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   getCustomDictionaryPrompt() {
     const words = getSettings().customDictionary;
     return words.length > 0 ? words.join(", ") : null;
+  }
+
+  /**
+   * Build a combined transcription prompt: punctuation hint (for Russian) + custom dictionary words.
+   * @param {string} [language] - ISO language code (e.g. "ru", "en")
+   * @returns {string|null}
+   */
+  buildTranscriptionPrompt(language) {
+    const parts = [];
+    if (!language || language === "ru") {
+      parts.push(PUNCTUATION_PROMPT_RU);
+    }
+    const dict = this.getCustomDictionaryPrompt();
+    if (dict) {
+      parts.push(dict);
+    }
+    return parts.length > 0 ? parts.join(" ") : null;
   }
 
   setCallbacks({
@@ -533,6 +555,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           title: "Transcription Error",
           description: `Transcription failed: ${error.message}`,
           code: error.code,
+          backupFilename: error.backupFilename,
         });
       }
     } finally {
@@ -556,10 +579,10 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         options.language = language;
       }
 
-      // Add custom dictionary as initial prompt to help Whisper recognize specific words
-      const dictionaryPrompt = this.getCustomDictionaryPrompt();
-      if (dictionaryPrompt) {
-        options.initialPrompt = dictionaryPrompt;
+      // Add punctuation hint (for Russian) + custom dictionary as initial prompt
+      const transcriptionPrompt = this.buildTranscriptionPrompt(language);
+      if (transcriptionPrompt) {
+        options.initialPrompt = transcriptionPrompt;
       }
 
       logger.debug(
@@ -600,7 +623,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       } else if (result.success === false && result.message === "No audio detected") {
         throw new Error("No audio detected");
       } else {
-        throw new Error(result.message || result.error || "Local Whisper transcription failed");
+        const err = new Error(result.message || result.error || "Local Whisper transcription failed");
+        if (result.backupFilename) err.backupFilename = result.backupFilename;
+        throw err;
       }
     } catch (error) {
       if (error.message === "No audio detected") {
@@ -614,12 +639,16 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           const fallbackResult = await this.processWithOpenAIAPI(audioBlob, metadata);
           return { ...fallbackResult, source: "openai-fallback" };
         } catch (fallbackError) {
-          throw new Error(
+          const err = new Error(
             `Local Whisper failed: ${error.message}. OpenAI fallback also failed: ${fallbackError.message}`
           );
+          err.backupFilename = error.backupFilename;
+          throw err;
         }
       } else {
-        throw new Error(`Local Whisper failed: ${error.message}`);
+        const err = new Error(`Local Whisper failed: ${error.message}`);
+        err.backupFilename = error.backupFilename;
+        throw err;
       }
     }
   }
@@ -1217,8 +1246,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       opts.sendLogs = "false";
     }
 
-    const dictionaryPrompt = this.getCustomDictionaryPrompt();
-    if (dictionaryPrompt) opts.prompt = dictionaryPrompt;
+    const transcriptionPrompt = this.buildTranscriptionPrompt(language);
+    if (transcriptionPrompt) opts.prompt = transcriptionPrompt;
 
     // Use withSessionRefresh to handle AUTH_EXPIRED automatically
     const transcriptionStart = performance.now();
@@ -1400,10 +1429,10 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         formData.append("language", language);
       }
 
-      // Add custom dictionary as prompt hint for cloud transcription
-      const dictionaryPrompt = this.getCustomDictionaryPrompt();
-      if (dictionaryPrompt) {
-        formData.append("prompt", dictionaryPrompt);
+      // Add punctuation hint + custom dictionary as prompt hint for cloud transcription
+      const transcriptionPrompt = this.buildTranscriptionPrompt(language);
+      if (transcriptionPrompt) {
+        formData.append("prompt", transcriptionPrompt);
       }
 
       const shouldStream = this.shouldStreamTranscription(model, provider);
@@ -1425,6 +1454,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         const audioBuffer = await optimizedAudio.arrayBuffer();
         const proxyData = { audioBuffer, model, language };
 
+        const dictionaryPrompt = this.getCustomDictionaryPrompt();
         if (dictionaryPrompt) {
           const tokens = dictionaryPrompt
             .split(",")

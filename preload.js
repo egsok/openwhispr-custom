@@ -46,6 +46,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getAudioStorageUsage: () => ipcRenderer.invoke("get-audio-storage-usage"),
   deleteAllAudio: () => ipcRenderer.invoke("delete-all-audio"),
   retryTranscription: (id) => ipcRenderer.invoke("retry-transcription", id),
+  retryTranscriptionFromBackup: (filename, options) =>
+    ipcRenderer.invoke("retry-transcription-from-backup", filename, options),
+  listAudioBackups: () => ipcRenderer.invoke("list-audio-backups"),
+  getAudioBackupDir: () => ipcRenderer.invoke("get-audio-backup-dir"),
+  setAudioBackupDir: (dir) => ipcRenderer.invoke("set-audio-backup-dir", dir),
+  openAudioBackupDir: () => ipcRenderer.invoke("open-audio-backup-dir"),
   updateTranscriptionText: (id, text, rawText) =>
     ipcRenderer.invoke("update-transcription-text", id, text, rawText),
   getTranscriptionById: (id) => ipcRenderer.invoke("get-transcription-by-id", id),
