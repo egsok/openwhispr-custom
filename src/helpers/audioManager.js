@@ -15,6 +15,11 @@ const SHORT_CLIP_DURATION_SECONDS = 2.5;
 const REASONING_CACHE_TTL = 30000; // 30 seconds
 const REALTIME_MODELS = new Set(["gpt-4o-mini-transcribe", "gpt-4o-transcribe"]);
 
+// Punctuation prompt for Russian — Whisper tends to drop punctuation for Russian speech.
+// Providing a prompt with varied punctuation nudges the autoregressive decoder to keep producing it.
+const PUNCTUATION_PROMPT_RU =
+  'Итак, давайте начнём. Сегодня мы обсудим важные вещи, которые помогут вам разобраться в ситуации. Вот основные вопросы: что делать? как быть? и куда двигаться дальше.';
+
 const PLACEHOLDER_KEYS = {
   openai: "your_openai_api_key_here",
   groq: "your_groq_api_key_here",
@@ -160,6 +165,23 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   getCustomDictionaryPrompt() {
     const words = getSettings().customDictionary;
     return words.length > 0 ? words.join(", ") : null;
+  }
+
+  /**
+   * Build a combined transcription prompt: punctuation hint (for Russian) + custom dictionary words.
+   * @param {string} [language] - ISO language code (e.g. "ru", "en")
+   * @returns {string|null}
+   */
+  buildTranscriptionPrompt(language) {
+    const parts = [];
+    if (!language || language === "ru") {
+      parts.push(PUNCTUATION_PROMPT_RU);
+    }
+    const dict = this.getCustomDictionaryPrompt();
+    if (dict) {
+      parts.push(dict);
+    }
+    return parts.length > 0 ? parts.join(" ") : null;
   }
 
   setCallbacks({
@@ -586,10 +608,10 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         options.language = language;
       }
 
-      // Add custom dictionary as initial prompt to help Whisper recognize specific words
-      const dictionaryPrompt = this.getCustomDictionaryPrompt();
-      if (dictionaryPrompt) {
-        options.initialPrompt = dictionaryPrompt;
+      // Add punctuation hint (for Russian) + custom dictionary as initial prompt
+      const transcriptionPrompt = this.buildTranscriptionPrompt(language);
+      if (transcriptionPrompt) {
+        options.initialPrompt = transcriptionPrompt;
       }
 
       logger.debug(
@@ -1175,8 +1197,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       opts.sendLogs = "false";
     }
 
-    const dictionaryPrompt = this.getCustomDictionaryPrompt();
-    if (dictionaryPrompt) opts.prompt = dictionaryPrompt;
+    const transcriptionPrompt = this.buildTranscriptionPrompt(language);
+    if (transcriptionPrompt) opts.prompt = transcriptionPrompt;
 
     // Use withSessionRefresh to handle AUTH_EXPIRED automatically
     const transcriptionStart = performance.now();
@@ -1358,28 +1380,28 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         formData.append("language", language);
       }
 
-      // Add custom dictionary as prompt hint for cloud transcription
+      // Add punctuation hint + custom dictionary as prompt hint for cloud transcription
       // Groq Whisper API limits prompt to 896 chars; OpenAI ~900 chars.
       // Truncate at last comma boundary so we never send a partial word.
       const MAX_PROMPT_CHARS = provider === "groq" ? 896 : 900;
-      let dictionaryPrompt = this.getCustomDictionaryPrompt();
-      if (dictionaryPrompt) {
-        if (dictionaryPrompt.length > MAX_PROMPT_CHARS) {
-          const originalLength = dictionaryPrompt.length;
-          const truncated = dictionaryPrompt.slice(0, MAX_PROMPT_CHARS);
+      let transcriptionPrompt = this.buildTranscriptionPrompt(language);
+      if (transcriptionPrompt) {
+        if (transcriptionPrompt.length > MAX_PROMPT_CHARS) {
+          const originalLength = transcriptionPrompt.length;
+          const truncated = transcriptionPrompt.slice(0, MAX_PROMPT_CHARS);
           const lastComma = truncated.lastIndexOf(",");
-          dictionaryPrompt = lastComma > 0 ? truncated.slice(0, lastComma) : truncated;
+          transcriptionPrompt = lastComma > 0 ? truncated.slice(0, lastComma) : truncated;
           logger.debug(
-            "Custom dictionary prompt truncated",
+            "Transcription prompt truncated",
             {
               originalLength,
-              truncatedLength: dictionaryPrompt.length,
+              truncatedLength: transcriptionPrompt.length,
               maxChars: MAX_PROMPT_CHARS,
             },
             "transcription"
           );
         }
-        formData.append("prompt", dictionaryPrompt);
+        formData.append("prompt", transcriptionPrompt);
       }
 
       const shouldStream = this.shouldStreamTranscription(model, provider);
@@ -1401,6 +1423,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         const audioBuffer = await optimizedAudio.arrayBuffer();
         const proxyData = { audioBuffer, model, language };
 
+        const dictionaryPrompt = this.getCustomDictionaryPrompt();
         if (dictionaryPrompt) {
           const tokens = dictionaryPrompt
             .split(",")
