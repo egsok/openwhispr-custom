@@ -20,6 +20,7 @@ permissions:
 
 jobs:
   build:
+    if: github.repository == 'OpenWhispr/openwhispr'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
