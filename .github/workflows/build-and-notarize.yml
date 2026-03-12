@@ -17,6 +17,7 @@ on:
 
 jobs:
   build-linux:
+    if: github.repository == 'OpenWhispr/openwhispr'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -87,6 +88,7 @@ jobs:
           retention-days: 7
 
   build-windows:
+    if: github.repository == 'OpenWhispr/openwhispr'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -168,6 +170,7 @@ jobs:
           retention-days: 7
 
   build-macos:
+    if: github.repository == 'OpenWhispr/openwhispr'
     runs-on: macos-latest
     strategy:
       fail-fast: false
