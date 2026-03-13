@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **OpenAI Realtime VAD Sensitivity**: Lowered voice activity detection threshold from 0.5 to 0.3 (both client and API) so soft-spoken audio is no longer missed
 - **Speech Onset Clipping**: Increased VAD prefix padding from 300ms to 500ms to capture the quiet beginning of soft speech that was previously cut off
 - **Wayland Clipboard Paste**: Fixed `wl-copy` failing silently due to 1ms `spawnSync` timeout killing the fork before it completed — increased to 50ms (#416)
+- **Streaming Media Resume**: Fixed media staying paused after recording silence with "Pause media on dictation" enabled — streaming path now fires the completion callback even when no speech is detected (#429)
 
 ## [1.6.2] - 2026-03-11
 
