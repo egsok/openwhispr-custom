@@ -1172,6 +1172,11 @@
         "keepInClipboard": "Garder la transcription dans le presse-papiers",
         "keepInClipboardDescription": "Conserver le texte dicté dans le presse-papiers pour pouvoir le coller manuellement si nécessaire"
       },
+      "transcription": {
+        "title": "Transcription",
+        "suppressRepetition": "Supprimer les phrases répétées",
+        "suppressRepetitionDescription": "Supprimer automatiquement les phrases répétées causées par des boucles de transcription"
+      },
       "startup": {
         "launchAtLogin": "Lancer au démarrage",
         "launchAtLoginDescription": "Démarrer OpenWhispr automatiquement à la connexion",

@@ -1172,6 +1172,11 @@
         "keepInClipboard": "Сохранять транскрипцию в буфере обмена",
         "keepInClipboardDescription": "Сохранять надиктованный текст в буфере обмена для возможности ручной вставки при необходимости"
       },
+      "transcription": {
+        "title": "Транскрипция",
+        "suppressRepetition": "Подавлять повторы фраз",
+        "suppressRepetitionDescription": "Автоматически удалять повторяющиеся фразы, вызванные зацикливанием транскрипции"
+      },
       "startup": {
         "launchAtLogin": "Запускать при входе",
         "launchAtLoginDescription": "Автоматически запускать OpenWhispr при входе в систему",

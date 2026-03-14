@@ -1232,6 +1232,11 @@
         "keepInClipboard": "Keep transcription in clipboard",
         "keepInClipboardDescription": "Keep dictated text in your clipboard so you can paste it manually if needed"
       },
+      "transcription": {
+        "title": "Transcription",
+        "suppressRepetition": "Suppress repeated phrases",
+        "suppressRepetitionDescription": "Automatically remove repeated phrases caused by transcription loops"
+      },
       "startup": {
         "launchAtLogin": "Launch at login",
         "launchAtLoginDescription": "Start OpenWhispr automatically when you log in",

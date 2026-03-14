@@ -1172,6 +1172,11 @@
         "keepInClipboard": "将转录内容保留在剪贴板",
         "keepInClipboardDescription": "将听写文本保留在剪贴板中，以便在需要时手动粘贴"
       },
+      "transcription": {
+        "title": "转录",
+        "suppressRepetition": "抑制重复短语",
+        "suppressRepetitionDescription": "自动删除由转录循环引起的重复短语"
+      },
       "startup": {
         "launchAtLogin": "登录时启动",
         "launchAtLoginDescription": "登录时自动启动 OpenWhispr",

@@ -699,6 +699,8 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     setPauseMediaOnDictation,
     keepTranscriptionInClipboard,
     setKeepTranscriptionInClipboard,
+    suppressRepetition,
+    setSuppressRepetition,
     floatingIconAutoHide,
     setFloatingIconAutoHide,
     startMinimized,
@@ -2129,6 +2131,21 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
                       checked={keepTranscriptionInClipboard}
                       onChange={setKeepTranscriptionInClipboard}
                     />
+                  </SettingsRow>
+                </SettingsPanelRow>
+              </SettingsPanel>
+            </div>
+
+            {/* Transcription */}
+            <div>
+              <SectionHeader title={t("settingsPage.general.transcription.title")} />
+              <SettingsPanel>
+                <SettingsPanelRow>
+                  <SettingsRow
+                    label={t("settingsPage.general.transcription.suppressRepetition")}
+                    description={t("settingsPage.general.transcription.suppressRepetitionDescription")}
+                  >
+                    <Toggle checked={suppressRepetition} onChange={setSuppressRepetition} />
                   </SettingsRow>
                 </SettingsPanelRow>
               </SettingsPanel>

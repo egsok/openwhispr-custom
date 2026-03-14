@@ -1144,6 +1144,11 @@
         "keepInClipboard": "Manter transcrição na área de transferência",
         "keepInClipboardDescription": "Manter o texto ditado na área de transferência para poder colar manualmente se necessário"
       },
+      "transcription": {
+        "title": "Transcrição",
+        "suppressRepetition": "Suprimir frases repetidas",
+        "suppressRepetitionDescription": "Remover automaticamente frases repetidas causadas por loops de transcrição"
+      },
       "startup": {
         "launchAtLogin": "Iniciar ao fazer login",
         "launchAtLoginDescription": "Iniciar o OpenWhispr automaticamente ao fazer login",

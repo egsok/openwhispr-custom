@@ -65,6 +65,7 @@ const BOOLEAN_SETTINGS = new Set([
   "agentEnabled",
   "keepTranscriptionInClipboard",
   "dataRetentionEnabled",
+  "suppressRepetition",
 ]);
 
 const ARRAY_SETTINGS = new Set(["customDictionary", "gcalAccounts"]);
@@ -105,6 +106,7 @@ export interface SettingsState
   meetingAudioDetection: boolean;
   panelStartPosition: "bottom-right" | "center" | "bottom-left";
   keepTranscriptionInClipboard: boolean;
+  suppressRepetition: boolean;
 
   setUseLocalWhisper: (value: boolean) => void;
   setWhisperModel: (value: string) => void;
@@ -156,6 +158,7 @@ export interface SettingsState
   setMeetingAudioDetection: (value: boolean) => void;
   setPanelStartPosition: (position: "bottom-right" | "center" | "bottom-left") => void;
   setKeepTranscriptionInClipboard: (value: boolean) => void;
+  setSuppressRepetition: (value: boolean) => void;
   setIsSignedIn: (value: boolean) => void;
 
   setAgentModel: (value: string) => void;
@@ -308,6 +311,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     return "bottom-right" as const;
   })(),
   keepTranscriptionInClipboard: readBoolean("keepTranscriptionInClipboard", true),
+  suppressRepetition: readBoolean("suppressRepetition", true),
   isSignedIn: readBoolean("isSignedIn", false),
 
   agentModel: readString("agentModel", "openai/gpt-oss-120b"),
@@ -499,6 +503,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   },
 
   setKeepTranscriptionInClipboard: createBooleanSetter("keepTranscriptionInClipboard"),
+  setSuppressRepetition: createBooleanSetter("suppressRepetition"),
 
   setIsSignedIn: (value: boolean) => {
     if (isBrowser) localStorage.setItem("isSignedIn", String(value));

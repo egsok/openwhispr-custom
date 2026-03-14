@@ -1172,6 +1172,11 @@
         "keepInClipboard": "文字起こしをクリップボードに保持",
         "keepInClipboardDescription": "必要に応じて手動で貼り付けできるよう、音声入力テキストをクリップボードに保持します"
       },
+      "transcription": {
+        "title": "文字起こし",
+        "suppressRepetition": "繰り返しフレーズを抑制",
+        "suppressRepetitionDescription": "文字起こしループによる繰り返しフレーズを自動的に除去します"
+      },
       "startup": {
         "launchAtLogin": "ログイン時に起動",
         "launchAtLoginDescription": "ログイン時に OpenWhispr を自動的に起動",

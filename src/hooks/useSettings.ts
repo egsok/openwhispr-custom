@@ -243,6 +243,8 @@ function useSettingsInternal() {
     setAutoLearnCorrections,
     keepTranscriptionInClipboard: store.keepTranscriptionInClipboard,
     setKeepTranscriptionInClipboard: store.setKeepTranscriptionInClipboard,
+    suppressRepetition: store.suppressRepetition,
+    setSuppressRepetition: store.setSuppressRepetition,
     cloudBackupEnabled: store.cloudBackupEnabled,
     setCloudBackupEnabled: store.setCloudBackupEnabled,
     telemetryEnabled: store.telemetryEnabled,

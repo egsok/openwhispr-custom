@@ -1172,6 +1172,11 @@
         "keepInClipboard": "Mantener transcripción en el portapapeles",
         "keepInClipboardDescription": "Mantener el texto dictado en el portapapeles para poder pegarlo manualmente si es necesario"
       },
+      "transcription": {
+        "title": "Transcripción",
+        "suppressRepetition": "Suprimir frases repetidas",
+        "suppressRepetitionDescription": "Eliminar automáticamente frases repetidas causadas por bucles de transcripción"
+      },
       "startup": {
         "launchAtLogin": "Abrir al iniciar sesión",
         "launchAtLoginDescription": "Inicia OpenWhispr automáticamente al iniciar sesión",

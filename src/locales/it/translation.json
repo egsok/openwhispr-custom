@@ -1172,6 +1172,11 @@
         "keepInClipboard": "Mantieni la trascrizione negli appunti",
         "keepInClipboardDescription": "Mantieni il testo dettato negli appunti per poterlo incollare manualmente se necessario"
       },
+      "transcription": {
+        "title": "Trascrizione",
+        "suppressRepetition": "Sopprimere frasi ripetute",
+        "suppressRepetitionDescription": "Rimuovere automaticamente le frasi ripetute causate da cicli di trascrizione"
+      },
       "startup": {
         "launchAtLogin": "Avvia all'accesso",
         "launchAtLoginDescription": "Avvia OpenWhispr automaticamente all'accesso",

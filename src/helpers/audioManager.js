@@ -19,7 +19,7 @@ const REALTIME_MODELS = new Set(["gpt-4o-mini-transcribe", "gpt-4o-transcribe"])
 // Punctuation prompt for Russian — Whisper tends to drop punctuation for Russian speech.
 // Providing a prompt with varied punctuation nudges the autoregressive decoder to keep producing it.
 const PUNCTUATION_PROMPT_RU =
-  'Итак, давайте начнём. Сегодня мы обсудим важные вещи, которые помогут вам разобраться в ситуации. Вот основные вопросы: что делать? как быть? и куда двигаться дальше.';
+  'Привет, как дела? Я думаю, что стоит попробовать. Вот что он сказал: «Давайте сделаем это сегодня — пока есть время». Конечно, не всё так просто; нужно учитывать несколько факторов.';
 
 const PLACEHOLDER_KEYS = {
   openai: "your_openai_api_key_here",
@@ -1058,8 +1058,30 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     }
   }
 
+  removeRepetitions(text) {
+    // Remove consecutive repeated phrases (10+ chars repeated 2+ times)
+    let result = text;
+    let prev;
+    do {
+      prev = result;
+      result = result.replace(/(\b.{10,}?)\s+\1(?=\s|$)/g, '$1');
+    } while (result !== prev);
+    return result.trim();
+  }
+
   async processTranscription(text, source) {
-    const normalizedText = typeof text === "string" ? text.trim() : "";
+    let normalizedText = typeof text === "string" ? text.trim() : "";
+
+    if (normalizedText && getSettings().suppressRepetition) {
+      const before = normalizedText;
+      normalizedText = this.removeRepetitions(normalizedText);
+      if (before !== normalizedText) {
+        logger.debug("Removed repeated phrases from transcription", {
+          beforeLength: before.length,
+          afterLength: normalizedText.length,
+        }, "transcription");
+      }
+    }
 
     if (!normalizedText) {
       logger.logReasoning("TRANSCRIPTION_EMPTY_SKIPPING_REASONING", {

@@ -1172,6 +1172,11 @@
         "keepInClipboard": "Transkription in der Zwischenablage behalten",
         "keepInClipboardDescription": "Diktierten Text in der Zwischenablage behalten, damit Sie ihn bei Bedarf manuell einfügen können"
       },
+      "transcription": {
+        "title": "Transkription",
+        "suppressRepetition": "Wiederholte Phrasen unterdrücken",
+        "suppressRepetitionDescription": "Automatisch wiederholte Phrasen entfernen, die durch Transkriptionsschleifen verursacht werden"
+      },
       "startup": {
         "launchAtLogin": "Beim Anmelden starten",
         "launchAtLoginDescription": "OpenWhispr automatisch starten, wenn Sie sich anmelden",
