@@ -558,9 +558,10 @@ class ReasoningService extends BaseReasoningService {
             } else {
               requestBody.messages = messages;
               requestBody[apiConfig.tokenParam] = maxTokens;
-              if (apiConfig.supportsTemperature) {
-                requestBody.temperature = config.temperature || 0.3;
-              }
+            }
+
+            if (apiConfig.supportsTemperature) {
+              requestBody.temperature = config.temperature || 0.3;
             }
 
             const res = await fetch(endpoint, {
