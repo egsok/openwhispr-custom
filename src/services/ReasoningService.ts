@@ -1296,6 +1296,9 @@ class ReasoningService extends BaseReasoningService {
 
     const aiModel = getAIModel(provider, model, apiKey, baseURL);
 
+    const modelDef = getCloudModel(model);
+    const needsDisableThinking = provider === "groq" && modelDef?.disableThinking;
+
     logger.logReasoning("AGENT_AI_SDK_STREAM_REQUEST", {
       model,
       provider,
@@ -1314,6 +1317,7 @@ class ReasoningService extends BaseReasoningService {
       stopWhen: stepCountIs(tools ? 5 : 1),
       ...(apiConfig.supportsTemperature ? { temperature: config.temperature ?? 0.3 } : {}),
       maxOutputTokens: config.maxTokens || 4096,
+      ...(needsDisableThinking ? { providerOptions: { groq: { reasoningEffort: "none" } } } : {}),
     });
 
     for await (const chunk of result.fullStream) {
