@@ -1527,7 +1527,8 @@
       "staleIndicator": "O conteúdo mudou desde o aprimoramento",
       "live": "Ao vivo",
       "transcript": "Transcrição",
-      "notes": "Notas"
+      "notes": "Notas",
+      "conversationWillAppear": "A conversa aparecerá aqui..."
     },
     "upload": {
       "title": "Enviar áudio",

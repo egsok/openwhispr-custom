@@ -93,6 +93,16 @@ if (process.platform === "linux" && process.env.XDG_SESSION_TYPE === "wayland") 
   );
 }
 
+// Enable system audio loopback capture on macOS via ScreenCaptureKit / CoreAudio Taps.
+// Without these flags, getDisplayMedia({ audio: "loopback" }) returns a live audio track
+// that produces only silence (all-zero samples).
+if (process.platform === "darwin") {
+  app.commandLine.appendSwitch(
+    "enable-features",
+    "MacLoopbackAudioForScreenShare,MacSckSystemAudioLoopbackOverride,MacCatapSystemAudioLoopbackCapture"
+  );
+}
+
 // Set desktop filename so Wayland compositors can match windows to the .desktop entry.
 // This allows XDG portals (e.g. PipeWire) to persist permissions across sessions.
 if (process.platform === "linux") {
@@ -625,7 +635,11 @@ async function startApp() {
   const savedMeetingKey = environmentManager.getMeetingKey?.() || "";
   if (savedMeetingKey) {
     const result = hotkeyManager.registerSlot("meeting", savedMeetingKey, meetingHotkeyCallback);
-    debugLogger.info("Meeting hotkey startup registration", { savedMeetingKey, ...result }, "meeting");
+    debugLogger.info(
+      "Meeting hotkey startup registration",
+      { savedMeetingKey, ...result },
+      "meeting"
+    );
   }
 
   ipcMain.handle("register-meeting-hotkey", (_event, hotkey) => {

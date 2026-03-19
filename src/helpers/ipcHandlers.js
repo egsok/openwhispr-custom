@@ -302,6 +302,7 @@ class IPCHandlers {
 
     ipcMain.handle("restore-from-meeting-mode", () => {
       this.windowManager.restoreControlPanelFromMeetingMode();
+      this.meetingDetectionEngine?.setMeetingModeActive(false);
     });
 
     ipcMain.handle("app-quit", () => {
@@ -2336,29 +2337,50 @@ class IPCHandlers {
     let meetingTranscriptionPrepareInProgress = false;
     let meetingTranscriptionPreparePromise = null;
 
-    const attachMeetingStreamingHandlers = (streaming, win) => {
-      streaming.onPartialTranscript = (text) => {
-        if (win && !win.isDestroyed()) {
-          win.webContents.send("meeting-transcription-partial", text);
+    this._meetingMicStreaming = null;
+    this._meetingSystemStreaming = null;
+
+    const attachMeetingStreamingHandlers = (streaming, win, source) => {
+      const send = (channel, data) => {
+        if (!win || win.isDestroyed()) {
+          debugLogger.error("Meeting segment send failed: window unavailable", {
+            channel,
+            source,
+            winExists: !!win,
+          });
+          return;
         }
+        win.webContents.send(channel, data);
       };
-      streaming.onFinalTranscript = (text) => {
-        if (win && !win.isDestroyed()) {
-          win.webContents.send("meeting-transcription-final", text);
-        }
+
+      streaming.onPartialTranscript = (text) => {
+        send("meeting-transcription-segment", { text, source, type: "partial" });
+      };
+      streaming.onFinalTranscript = (text, timestamp) => {
+        const segments = streaming.completedSegments;
+        const latestSegment = segments.length > 0 ? segments[segments.length - 1] : text;
+        debugLogger.debug("Meeting segment sending to renderer", {
+          source,
+          text: latestSegment.slice(0, 80),
+          segmentCount: segments.length,
+        });
+        send("meeting-transcription-segment", {
+          text: latestSegment,
+          source,
+          type: "final",
+          timestamp,
+        });
       };
       streaming.onError = (error) => {
-        if (win && !win.isDestroyed()) {
-          win.webContents.send("meeting-transcription-error", error.message);
-        }
+        send("meeting-transcription-error", error.message);
       };
     };
 
-    const fetchRealtimeToken = async (event, options) => {
+    const fetchRealtimeToken = async (event, options, { streams } = {}) => {
       if (options.mode === "byok") {
         const apiKey = this.environmentManager.getOpenAIKey();
         if (!apiKey) throw new Error("No OpenAI API key configured. Add your key in Settings.");
-        return apiKey;
+        return streams === 2 ? [apiKey, apiKey] : apiKey;
       }
 
       const apiUrl = getApiUrl();
@@ -2370,7 +2392,11 @@ class IPCHandlers {
       const tokenResponse = await fetch(`${apiUrl}/api/openai-realtime-token`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Cookie: cookieHeader },
-        body: JSON.stringify({ model: options.model, language: options.language }),
+        body: JSON.stringify({
+          model: options.model,
+          language: options.language,
+          streams: streams || 1,
+        }),
       });
 
       if (!tokenResponse.ok) {
@@ -2378,28 +2404,53 @@ class IPCHandlers {
         throw new Error(err.error || `Token request failed: ${tokenResponse.status}`);
       }
 
-      const { clientSecret } = await tokenResponse.json();
-      if (!clientSecret) throw new Error("No client secret received");
-      return clientSecret;
+      const data = await tokenResponse.json();
+      if (streams === 2) {
+        if (!data.clientSecrets || data.clientSecrets.length < 2) {
+          throw new Error("Expected two client secrets for dual-stream");
+        }
+        return data.clientSecrets;
+      }
+      if (!data.clientSecret) throw new Error("No client secret received");
+      return data.clientSecret;
     };
 
     const connectRealtimeStreaming = async (event, options) => {
+      if (this._meetingMicStreaming?.isConnected) {
+        await this._meetingMicStreaming.disconnect();
+      }
+      if (this._meetingSystemStreaming?.isConnected) {
+        await this._meetingSystemStreaming.disconnect();
+      }
       if (this.openaiRealtimeStreaming?.isConnected) {
         await this.openaiRealtimeStreaming.disconnect();
       }
 
-      const clientSecret = await fetchRealtimeToken(event, options);
-      this.openaiRealtimeStreaming = new OpenAIRealtimeStreaming();
-
       const win = BrowserWindow.fromWebContents(event.sender);
-      attachMeetingStreamingHandlers(this.openaiRealtimeStreaming, win);
 
-      await this.openaiRealtimeStreaming.connect({
-        apiKey: clientSecret,
+      const [micSecret, systemSecret] = await fetchRealtimeToken(event, options, { streams: 2 });
+
+      const connectOpts = {
         model: options.model,
         language: options.language,
         preconfigured: options.mode !== "byok",
-      });
+      };
+      const pairs = [
+        { ref: "_meetingMicStreaming", secret: micSecret, source: "mic" },
+        { ref: "_meetingSystemStreaming", secret: systemSecret, source: "system" },
+      ];
+
+      for (const { ref, source } of pairs) {
+        this[ref] = new OpenAIRealtimeStreaming();
+        attachMeetingStreamingHandlers(this[ref], win, source);
+      }
+
+      await Promise.all(
+        pairs.map(({ ref, secret }) => this[ref].connect({ apiKey: secret, ...connectOpts }))
+      );
+
+      // Keep legacy reference for backward compat with prepare check
+      this.openaiRealtimeStreaming = this._meetingMicStreaming;
 
       return win;
     };
@@ -2430,15 +2481,15 @@ class IPCHandlers {
       this._dictationStreaming = streaming;
     };
 
-    // Pre-warm: fetch token + connect WebSocket before user hits record
+    // Pre-warm: fetch tokens + connect WebSockets before user hits record
     ipcMain.handle("meeting-transcription-prepare", async (event, options = {}) => {
       if (meetingTranscriptionPrepareInProgress || meetingTranscriptionStartInProgress) {
         debugLogger.debug("Meeting transcription prepare already in progress, ignoring");
         return { success: false, error: "Operation in progress" };
       }
 
-      if (this.openaiRealtimeStreaming?.isConnected) {
-        debugLogger.debug("Meeting transcription already prepared (warm connection)");
+      if (this._meetingMicStreaming?.isConnected && this._meetingSystemStreaming?.isConnected) {
+        debugLogger.debug("Meeting transcription already prepared (warm connections)");
         return { success: true, alreadyPrepared: true };
       }
 
@@ -2450,7 +2501,7 @@ class IPCHandlers {
       meetingTranscriptionPreparePromise = (async () => {
         try {
           await connectRealtimeStreaming(event, options);
-          debugLogger.debug("Meeting transcription prepared (WebSocket warm)");
+          debugLogger.debug("Meeting transcription prepared (dual WebSockets warm)");
           return { success: true };
         } catch (error) {
           debugLogger.error("Meeting transcription prepare error", { error: error.message });
@@ -2478,11 +2529,12 @@ class IPCHandlers {
 
       meetingTranscriptionStartInProgress = true;
       try {
-        // If already prepared (warm connection from prepare), just re-attach handlers
-        if (this.openaiRealtimeStreaming?.isConnected) {
-          debugLogger.debug("Meeting transcription start: reusing warm connection");
+        // If already prepared (warm connections from prepare), just re-attach handlers
+        if (this._meetingMicStreaming?.isConnected && this._meetingSystemStreaming?.isConnected) {
+          debugLogger.debug("Meeting transcription start: reusing warm connections");
           const win = BrowserWindow.fromWebContents(event.sender);
-          attachMeetingStreamingHandlers(this.openaiRealtimeStreaming, win);
+          attachMeetingStreamingHandlers(this._meetingMicStreaming, win, "mic");
+          attachMeetingStreamingHandlers(this._meetingSystemStreaming, win, "system");
           return { success: true };
         }
 
@@ -2500,19 +2552,50 @@ class IPCHandlers {
       }
     });
 
-    ipcMain.on("meeting-transcription-send", (_event, audioBuffer) => {
-      if (!this.openaiRealtimeStreaming) return;
-      this.openaiRealtimeStreaming.sendAudio(Buffer.from(audioBuffer));
+    let meetingSendCounts = { mic: 0, system: 0 };
+    ipcMain.on("meeting-transcription-send", (_event, audioBuffer, source) => {
+      const streaming = source === "mic" ? this._meetingMicStreaming : this._meetingSystemStreaming;
+      if (!streaming) {
+        if (meetingSendCounts[source] === 0) {
+          debugLogger.error("Meeting audio send: no streaming instance", { source });
+        }
+        return;
+      }
+      const buf = Buffer.from(audioBuffer);
+      const sent = streaming.sendAudio(buf);
+      meetingSendCounts[source]++;
+      if (meetingSendCounts[source] <= 5 || meetingSendCounts[source] % 100 === 0) {
+        debugLogger.debug("Meeting audio send", {
+          source,
+          bytes: buf.length,
+          sent,
+          wsReady: streaming.ws?.readyState,
+          totalSent: streaming.audioBytesSent,
+          count: meetingSendCounts[source],
+        });
+      }
     });
 
     ipcMain.handle("meeting-transcription-stop", async () => {
       try {
-        let result = { text: "" };
-        if (this.openaiRealtimeStreaming) {
-          result = await this.openaiRealtimeStreaming.disconnect();
-          this.openaiRealtimeStreaming = null;
-        }
-        return { success: true, transcript: result?.text || "" };
+        const results = await Promise.all([
+          this._meetingMicStreaming
+            ? this._meetingMicStreaming.disconnect()
+            : Promise.resolve({ text: "" }),
+          this._meetingSystemStreaming
+            ? this._meetingSystemStreaming.disconnect()
+            : Promise.resolve({ text: "" }),
+        ]);
+
+        this._meetingMicStreaming = null;
+        this._meetingSystemStreaming = null;
+        this.openaiRealtimeStreaming = null;
+        meetingSendCounts = { mic: 0, system: 0 };
+
+        return {
+          success: true,
+          transcript: [results[0]?.text, results[1]?.text].filter(Boolean).join(" "),
+        };
       } catch (error) {
         debugLogger.error("Meeting transcription stop error", { error: error.message });
         return { success: false, error: error.message };

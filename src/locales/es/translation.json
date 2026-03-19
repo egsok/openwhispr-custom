@@ -1527,7 +1527,8 @@
       "staleIndicator": "El contenido ha cambiado desde la mejora",
       "live": "En vivo",
       "transcript": "Transcripción",
-      "notes": "Notas"
+      "notes": "Notas",
+      "conversationWillAppear": "La conversación aparecerá aquí..."
     },
     "upload": {
       "title": "Subir audio",

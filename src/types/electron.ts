@@ -1115,7 +1115,7 @@ declare global {
         error?: string;
       }>;
 
-      // Meeting transcription (streaming)
+      // Meeting transcription (streaming, dual-channel)
       meetingTranscriptionPrepare?: (options: {
         provider?: string;
         model?: string;
@@ -1126,14 +1126,19 @@ declare global {
         model?: string;
         language?: string;
       }) => Promise<{ success: boolean; error?: string }>;
-      meetingTranscriptionSend?: (buffer: ArrayBuffer) => void;
+      meetingTranscriptionSend?: (buffer: ArrayBuffer, source: "mic" | "system") => void;
       meetingTranscriptionStop?: () => Promise<{
         success: boolean;
         transcript?: string;
         error?: string;
       }>;
-      onMeetingTranscriptionPartial?: (callback: (text: string) => void) => () => void;
-      onMeetingTranscriptionFinal?: (callback: (text: string) => void) => () => void;
+      onMeetingTranscriptionSegment?: (
+        callback: (data: {
+          text: string;
+          source: "mic" | "system";
+          type: "partial" | "final";
+        }) => void
+      ) => () => void;
       onMeetingTranscriptionError?: (callback: (error: string) => void) => () => void;
 
       // Dictation realtime streaming

@@ -1565,7 +1565,8 @@
       "staleIndicator": "Le contenu a changé depuis l'amélioration",
       "live": "En direct",
       "transcript": "Transcription",
-      "notes": "Notes"
+      "notes": "Notes",
+      "conversationWillAppear": "La conversation apparaîtra ici..."
     },
     "upload": {
       "title": "Téléverser un fichier audio",

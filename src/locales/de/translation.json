@@ -1527,7 +1527,8 @@
       "staleIndicator": "Der Inhalt hat sich seit der Verbesserung geändert",
       "live": "Live",
       "transcript": "Transkript",
-      "notes": "Notizen"
+      "notes": "Notizen",
+      "conversationWillAppear": "Gespräch wird hier angezeigt..."
     },
     "upload": {
       "title": "Audio hochladen",

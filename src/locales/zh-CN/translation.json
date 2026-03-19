@@ -1527,7 +1527,8 @@
       "staleIndicator": "内容在增强后已更改",
       "live": "实时",
       "transcript": "转录",
-      "notes": "笔记"
+      "notes": "笔记",
+      "conversationWillAppear": "对话将显示在这里..."
     },
     "upload": {
       "title": "上传音频",

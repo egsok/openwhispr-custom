@@ -25,13 +25,15 @@ export default function UpdateNotificationOverlay() {
       }, 50);
     };
 
-    const cleanup = window.electronAPI?.onUpdateNotificationData?.((incoming: UpdateNotificationData) =>
-      show(incoming)
+    const cleanup = window.electronAPI?.onUpdateNotificationData?.(
+      (incoming: UpdateNotificationData) => show(incoming)
     );
 
-    window.electronAPI?.getUpdateNotificationData?.().then((pulled: UpdateNotificationData | null) => {
-      if (pulled) show(pulled);
-    });
+    window.electronAPI
+      ?.getUpdateNotificationData?.()
+      .then((pulled: UpdateNotificationData | null) => {
+        if (pulled) show(pulled);
+      });
 
     return () => cleanup?.();
   }, []);

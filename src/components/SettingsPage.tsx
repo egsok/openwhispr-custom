@@ -3257,10 +3257,7 @@ EOF`,
                     label={t("settingsPage.privacy.dataRetention")}
                     description={t("settingsPage.privacy.dataRetentionDescription")}
                   >
-                    <Toggle
-                      checked={dataRetentionEnabled}
-                      onChange={setDataRetentionEnabled}
-                    />
+                    <Toggle checked={dataRetentionEnabled} onChange={setDataRetentionEnabled} />
                   </SettingsRow>
                 </SettingsPanelRow>
               </SettingsPanel>

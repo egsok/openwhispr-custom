@@ -1635,7 +1635,8 @@
       "staleIndicator": "Content has changed since enhancement",
       "live": "Live",
       "transcript": "Transcript",
-      "notes": "Notes"
+      "notes": "Notes",
+      "conversationWillAppear": "Conversation will appear here..."
     },
     "upload": {
       "title": "Upload Audio",

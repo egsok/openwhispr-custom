@@ -1527,7 +1527,8 @@
       "staleIndicator": "Il contenuto è cambiato dall'ultimo miglioramento",
       "live": "Dal vivo",
       "transcript": "Trascrizione",
-      "notes": "Note"
+      "notes": "Note",
+      "conversationWillAppear": "La conversazione apparirà qui..."
     },
     "upload": {
       "title": "Carica audio",

@@ -451,19 +451,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
   meetingTranscribeChain: (blobUrl, opts) =>
     ipcRenderer.invoke("meeting-transcribe-chain", blobUrl, opts),
 
-  // Meeting transcription (streaming)
+  // Meeting transcription (streaming, dual-channel)
   meetingTranscriptionPrepare: (options) =>
     ipcRenderer.invoke("meeting-transcription-prepare", options),
   meetingTranscriptionStart: (options) =>
     ipcRenderer.invoke("meeting-transcription-start", options),
-  meetingTranscriptionSend: (buffer) => ipcRenderer.send("meeting-transcription-send", buffer),
+  meetingTranscriptionSend: (buffer, source) =>
+    ipcRenderer.send("meeting-transcription-send", buffer, source),
   meetingTranscriptionStop: () => ipcRenderer.invoke("meeting-transcription-stop"),
-  onMeetingTranscriptionPartial: registerListener(
-    "meeting-transcription-partial",
-    (callback) => (_event, data) => callback(data)
-  ),
-  onMeetingTranscriptionFinal: registerListener(
-    "meeting-transcription-final",
+  onMeetingTranscriptionSegment: registerListener(
+    "meeting-transcription-segment",
     (callback) => (_event, data) => callback(data)
   ),
   onMeetingTranscriptionError: registerListener(

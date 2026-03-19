@@ -1426,6 +1426,7 @@
       "live": "ライブ",
       "transcript": "文字起こし",
       "notes": "ノート",
+      "conversationWillAppear": "会話がここに表示されます...",
       "untitled": "無題",
       "noteTitle": "ノートのタイトル",
       "stop": "停止",

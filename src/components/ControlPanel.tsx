@@ -22,7 +22,7 @@ import ControlPanelSidebar, { type ControlPanelView } from "./ControlPanelSideba
 import WindowControls from "./WindowControls";
 
 import { getCachedPlatform } from "../utils/platform";
-import { setActiveNoteId, setActiveFolderId } from "../stores/noteStore";
+import { setActiveNoteId, setActiveFolderId, initializeNotes } from "../stores/noteStore";
 import HistoryView from "./HistoryView";
 
 const platform = getCachedPlatform();
@@ -221,6 +221,7 @@ export default function ControlPanel() {
       setActiveView("personal-notes");
       setIsMeetingMode(true);
       setMeetingRecordingRequest(data);
+      initializeNotes(null, 50, data.folderId);
     });
     return () => cleanup?.();
   }, []);
