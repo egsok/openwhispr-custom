@@ -10,7 +10,7 @@ import { ConfirmDialog } from "../ui/dialog";
 import { useDialogs } from "../../hooks/useDialogs";
 import { getCachedPlatform } from "../../utils/platform";
 
-const ChatSearchDialog = lazy(() => import("./ChatSearchDialog"));
+const CommandSearch = lazy(() => import("../CommandSearch"));
 
 const platform = getCachedPlatform();
 
@@ -130,12 +130,11 @@ export default function ChatView() {
       />
       {showSearch && (
         <Suspense fallback={null}>
-          <ChatSearchDialog
+          <CommandSearch
             open={showSearch}
             onOpenChange={setShowSearch}
-            onSelect={(id) => {
-              handleSelectConversation(id);
-            }}
+            mode="conversations"
+            onConversationSelect={handleSelectConversation}
           />
         </Suspense>
       )}
