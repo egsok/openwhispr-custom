@@ -249,11 +249,9 @@ export function ChatMessage({ role, content, isStreaming, toolCalls }: ChatMessa
           />
         )}
 
-        {isStreaming && !hasContent && (
-          <span
-            className="text-[13px] font-medium select-none thinking-shimmer-text"
-          >
-            {t("agentMode.input.thinking")}
+        {isStreaming && !hasContent && !hasToolCalls && (
+          <span className="text-[13px] font-medium select-none thinking-shimmer-text">
+            {t("agentMode.input.thinking")}...
           </span>
         )}
 

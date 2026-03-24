@@ -112,12 +112,15 @@ export function ChatInput({
   const isBusy = agentState === "thinking" || agentState === "streaming" || agentState === "tool-executing";
 
   return (
-    <div
-      className={cn(
-        "flex items-center gap-2 h-10 px-3 shrink-0",
-        "bg-surface-1 border-t border-border/30"
-      )}
-    >
+    <div className="shrink-0 px-3 pb-3 pt-1">
+      <div
+        className={cn(
+          "flex items-center gap-2 min-h-11 px-3 rounded-lg",
+          "bg-surface-1 border border-border/30",
+          "transition-colors duration-150",
+          isIdle && "focus-within:border-primary/30"
+        )}
+      >
       {isListening && (
         <>
           <RecordingIndicator />
@@ -190,6 +193,7 @@ export function ChatInput({
           ) : null}
         </div>
       )}
+      </div>
     </div>
   );
 }
