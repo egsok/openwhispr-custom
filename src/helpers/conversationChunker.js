@@ -23,4 +23,4 @@ function formatChunkText(title, messages) {
   return `${title}\n${body}`.slice(0, 1500);
 }
 
-module.exports = { chunkConversation, CHUNK_SIZE };
+module.exports = { chunkConversation };

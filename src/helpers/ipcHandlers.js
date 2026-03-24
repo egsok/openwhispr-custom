@@ -733,7 +733,11 @@ class IPCHandlers {
     });
 
     ipcMain.handle("db-delete-agent-conversation", async (event, id) => {
-      return this.databaseManager.deleteAgentConversation(id);
+      const result = this.databaseManager.deleteAgentConversation(id);
+      if (this.vectorIndex?.isReady?.()) {
+        this.vectorIndex.deleteConversationChunks(id).catch(() => {});
+      }
+      return result;
     });
 
     ipcMain.handle("db-update-agent-conversation-title", async (event, id, title) => {
@@ -743,7 +747,16 @@ class IPCHandlers {
     ipcMain.handle(
       "db-add-agent-message",
       async (event, conversationId, role, content, metadata) => {
-        return this.databaseManager.addAgentMessage(conversationId, role, content, metadata);
+        const result = this.databaseManager.addAgentMessage(conversationId, role, content, metadata);
+        if (this.vectorIndex?.isReady?.()) {
+          const conv = this.databaseManager.getAgentConversation(conversationId);
+          if (conv && conv.messages?.length % 3 === 0) {
+            this.vectorIndex
+              .upsertConversationChunks(conversationId, conv.title, conv.messages)
+              .catch(() => {});
+          }
+        }
+        return result;
       }
     );
 
@@ -779,6 +792,25 @@ class IPCHandlers {
     });
 
     ipcMain.handle("db-semantic-search-conversations", async (event, query, limit) => {
+      if (this.vectorIndex?.isReady?.()) {
+        try {
+          const vectorResults = await this.vectorIndex.searchConversations(query, limit);
+          if (vectorResults?.length > 0) {
+            const ids = vectorResults.map((r) => r.conversationId);
+            const previews = ids
+              .map((id) => this.databaseManager.getAgentConversation(id))
+              .filter(Boolean)
+              .map((c) => ({
+                ...c,
+                message_count: c.messages?.length ?? 0,
+                last_message: c.messages?.[c.messages.length - 1]?.content,
+              }));
+            if (previews.length > 0) return previews;
+          }
+        } catch {
+          // fall through to keyword search
+        }
+      }
       return this.databaseManager.searchAgentConversations(query, limit);
     });
 

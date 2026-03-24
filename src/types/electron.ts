@@ -1012,6 +1012,8 @@ declare global {
         Array<{
           id: number;
           title: string;
+          archived_at?: string;
+          cloud_id?: string;
           created_at: string;
           updated_at: string;
         }>
@@ -1019,6 +1021,8 @@ declare global {
       getAgentConversation?: (id: number) => Promise<{
         id: number;
         title: string;
+        archived_at?: string;
+        cloud_id?: string;
         created_at: string;
         updated_at: string;
         messages: Array<{

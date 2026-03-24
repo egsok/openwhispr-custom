@@ -4,6 +4,7 @@ interface ConversationItem {
   id: number;
   title: string;
   cloud_id?: string | null;
+  archived_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -20,18 +21,7 @@ const useChatStore = create<ChatState>()(() => ({
   migration: null,
 }));
 
-let hasBoundIpcListeners = false;
-const DEFAULT_LIMIT = 50;
-
-function ensureIpcListeners() {
-  if (hasBoundIpcListeners || typeof window === "undefined") {
-    return;
-  }
-  hasBoundIpcListeners = true;
-}
-
-export async function initializeConversations(limit = DEFAULT_LIMIT): Promise<ConversationItem[]> {
-  ensureIpcListeners();
+export async function initializeConversations(limit = 50): Promise<ConversationItem[]> {
   const items = (await window.electronAPI?.getAgentConversations?.(limit)) ?? [];
   useChatStore.setState({ conversations: items });
   return items;
@@ -146,16 +136,14 @@ export async function syncConversationDeleteToCloud(cloudId: string): Promise<vo
 
 export async function startConversationMigration(): Promise<void> {
   const allConversations = (await window.electronAPI?.getAgentConversations?.(9999)) ?? [];
-  const unsynced = allConversations.filter(
-    (c: ConversationItem) => !(c as ConversationItem).cloud_id
-  );
+  const unsynced = allConversations.filter((c) => !c.cloud_id);
   if (unsynced.length === 0) return;
 
   useChatStore.setState({ migration: { total: unsynced.length, done: 0 } });
 
   for (const conv of unsynced) {
     try {
-      await syncConversationToCloud(conv as ConversationItem);
+      await syncConversationToCloud(conv);
       useChatStore.setState((s) => ({
         migration: s.migration
           ? {
