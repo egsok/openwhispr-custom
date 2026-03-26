@@ -745,6 +745,7 @@ export default function ControlPanel() {
                     setSettingsSection(section);
                     setShowSettings(true);
                   }}
+                  onOpenSearch={() => setShowSearch(true)}
                   meetingRecordingRequest={meetingRecordingRequest}
                   onMeetingRecordingRequestHandled={handleMeetingRecordingRequestHandled}
                   isMeetingMode={isMeetingMode}

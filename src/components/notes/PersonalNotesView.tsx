@@ -1,6 +1,16 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, Loader2, FolderOpen, MoreHorizontal, Pencil, Trash2, Check } from "lucide-react";
+import {
+  Plus,
+  Loader2,
+  FolderOpen,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  Check,
+  SquarePen,
+  Search,
+} from "lucide-react";
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
@@ -9,6 +19,16 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "../ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+  SelectSeparator,
+} from "../ui/select";
+import { Input } from "../ui/input";
 import { useToast } from "../ui/Toast";
 import NoteListItem from "./NoteListItem";
 import NoteEditor from "./NoteEditor";
@@ -20,7 +40,7 @@ import { useSettingsStore, selectIsCloudReasoningMode } from "../../stores/setti
 import { useFolderManagement } from "../../hooks/useFolderManagement";
 import { useNoteDragAndDrop } from "../../hooks/useNoteDragAndDrop";
 import { cn } from "../lib/utils";
-import { MEETINGS_FOLDER_NAME } from "./shared";
+import { MEETINGS_FOLDER_NAME, findDefaultFolder } from "./shared";
 import logger from "../../utils/logger";
 import { parseTranscriptSegments } from "../../utils/parseTranscriptSegments";
 import {
@@ -44,6 +64,7 @@ function makeContentHash(content: string): string {
 
 interface PersonalNotesViewProps {
   onOpenSettings?: (section: string) => void;
+  onOpenSearch?: () => void;
   meetingRecordingRequest?: { noteId: number; folderId: number; event: any } | null;
   onMeetingRecordingRequestHandled?: () => void;
   isMeetingMode?: boolean;
@@ -51,6 +72,7 @@ interface PersonalNotesViewProps {
 
 export default function PersonalNotesView({
   onOpenSettings,
+  onOpenSearch,
   meetingRecordingRequest,
   onMeetingRecordingRequestHandled,
   isMeetingMode,
@@ -64,6 +86,10 @@ export default function PersonalNotesView({
   const [localContent, setLocalContent] = useState("");
   const [localEnhancedContent, setLocalEnhancedContent] = useState<string | null>(null);
   const [showActionManager, setShowActionManager] = useState(false);
+  const [showNewNoteDialog, setShowNewNoteDialog] = useState(false);
+  const [newNoteFolderId, setNewNoteFolderId] = useState<string>("");
+  const [showNewNoteFolderDialog, setShowNewNoteFolderDialog] = useState(false);
+  const [newNoteFolderName, setNewNoteFolderName] = useState("");
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const enhancedSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const activeNoteRef = useRef<number | null>(null);
@@ -233,6 +259,51 @@ export default function PersonalNotesView({
       loadFolders();
     }
   }, [activeFolderId, loadFolders]);
+
+  const handleOpenNewNoteDialog = useCallback(() => {
+    const personal = findDefaultFolder(folders);
+    setNewNoteFolderId(personal ? String(personal.id) : folders[0] ? String(folders[0].id) : "");
+    setShowNewNoteDialog(true);
+  }, [folders]);
+
+  const handleNewNoteFolderChange = useCallback((val: string) => {
+    if (val === "__create_new__") {
+      setShowNewNoteFolderDialog(true);
+      return;
+    }
+    setNewNoteFolderId(val);
+  }, []);
+
+  const handleCreateNewNoteFolder = useCallback(async () => {
+    const trimmed = newNoteFolderName.trim();
+    if (!trimmed) return;
+    const res = await window.electronAPI.createFolder(trimmed);
+    if (res.success && res.folder) {
+      await loadFolders();
+      setNewNoteFolderId(String(res.folder.id));
+    }
+    setNewNoteFolderName("");
+    setShowNewNoteFolderDialog(false);
+  }, [newNoteFolderName, loadFolders]);
+
+  const handleConfirmNewNote = useCallback(async () => {
+    const folderId = Number(newNoteFolderId);
+    if (!folderId) return;
+    const result = await window.electronAPI.saveNote(
+      t("notes.list.untitledNote"),
+      "",
+      "personal",
+      null,
+      null,
+      folderId
+    );
+    if (result.success && result.note) {
+      setActiveFolderId(folderId);
+      setActiveNoteId(result.note.id);
+      loadFolders();
+    }
+    setShowNewNoteDialog(false);
+  }, [newNoteFolderId, loadFolders]);
 
   const handleNotesAdded = useCallback(async () => {
     if (activeFolderId) {
@@ -410,6 +481,35 @@ export default function PersonalNotesView({
         style={{ width: isMeetingMode ? 0 : "13rem" }}
       >
         <div className="w-52 shrink-0 border-r border-border/15 dark:border-white/4 flex flex-col h-full">
+          <div className="px-2 pt-2 pb-1 shrink-0 space-y-0.5">
+            <button
+              onClick={handleOpenNewNoteDialog}
+              className={cn(
+                "flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs",
+                "text-muted-foreground/80 hover:text-foreground hover:bg-foreground/5",
+                "transition-colors duration-150",
+                "focus:outline-none focus-visible:ring-1 focus-visible:ring-ring/30"
+              )}
+            >
+              <SquarePen size={14} className="shrink-0" />
+              {t("notes.sidebar.newNote")}
+            </button>
+            {onOpenSearch && (
+              <button
+                onClick={onOpenSearch}
+                className={cn(
+                  "flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs",
+                  "text-muted-foreground/80 hover:text-foreground hover:bg-foreground/5",
+                  "transition-colors duration-150",
+                  "focus:outline-none focus-visible:ring-1 focus-visible:ring-ring/30"
+                )}
+              >
+                <Search size={14} className="shrink-0" />
+                {t("notes.sidebar.searchNotes")}
+              </button>
+            )}
+          </div>
+
           {/* Folders */}
           <div className="flex items-center justify-between px-3 py-2">
             <span className="text-xs font-medium uppercase tracking-wider text-foreground/50 dark:text-foreground/25">
@@ -920,6 +1020,97 @@ export default function PersonalNotesView({
           onNotesAdded={handleNotesAdded}
         />
       )}
+
+      <Dialog open={showNewNoteDialog} onOpenChange={setShowNewNoteDialog}>
+        <DialogContent className="sm:max-w-[320px] p-5 gap-3">
+          <DialogHeader>
+            <DialogTitle className="text-sm">{t("notes.sidebar.newNote")}</DialogTitle>
+          </DialogHeader>
+          {folders.length > 0 && (
+            <div className="flex items-center gap-2">
+              <FolderOpen size={12} className="text-foreground/20 shrink-0" />
+              <Select value={newNoteFolderId} onValueChange={handleNewNoteFolderChange}>
+                <SelectTrigger className="h-7 flex-1 text-xs rounded-lg px-2.5 [&>svg]:h-3 [&>svg]:w-3">
+                  <SelectValue placeholder={t("notes.upload.selectFolder")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {folders.map((f) => (
+                    <SelectItem key={f.id} value={String(f.id)}>
+                      {f.name}
+                    </SelectItem>
+                  ))}
+                  <SelectSeparator />
+                  <SelectItem value="__create_new__">
+                    <span className="flex items-center gap-1.5 text-primary/60">
+                      <Plus size={11} />
+                      {t("notes.upload.newFolder")}
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <DialogFooter className="gap-1.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowNewNoteDialog(false)}
+              className="h-7 text-xs"
+            >
+              {t("notes.upload.cancel")}
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleConfirmNewNote}
+              disabled={!newNoteFolderId}
+              className="h-7 text-xs"
+            >
+              {t("notes.upload.create")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showNewNoteFolderDialog} onOpenChange={setShowNewNoteFolderDialog}>
+        <DialogContent className="sm:max-w-[320px] p-5 gap-3">
+          <DialogHeader>
+            <DialogTitle className="text-sm">{t("notes.upload.newFolder")}</DialogTitle>
+          </DialogHeader>
+          <Input
+            value={newNoteFolderName}
+            onChange={(e) => setNewNoteFolderName(e.target.value)}
+            placeholder={t("notes.upload.folderName")}
+            className="h-8 text-xs"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleCreateNewNoteFolder();
+            }}
+          />
+          <DialogFooter className="gap-1.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setShowNewNoteFolderDialog(false);
+                setNewNoteFolderName("");
+              }}
+              className="h-7 text-xs"
+            >
+              {t("notes.upload.cancel")}
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleCreateNewNoteFolder}
+              disabled={!newNoteFolderName.trim()}
+              className="h-7 text-xs"
+            >
+              {t("notes.upload.create")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

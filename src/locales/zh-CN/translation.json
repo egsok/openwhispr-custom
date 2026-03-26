@@ -1527,6 +1527,10 @@
     }
   },
   "notes": {
+    "sidebar": {
+      "newNote": "新建笔记",
+      "searchNotes": "搜索笔记"
+    },
     "folders": {
       "title": "文件夹",
       "soon": "即将推出",

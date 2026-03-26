@@ -1641,6 +1641,10 @@
     "upgradeUnlimited": "Upgrade to Pro — unlimited transcriptions"
   },
   "notes": {
+    "sidebar": {
+      "newNote": "New note",
+      "searchNotes": "Search notes"
+    },
     "folders": {
       "title": "Folders",
       "soon": "Soon",

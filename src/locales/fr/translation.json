@@ -1593,6 +1593,10 @@
     "upgradeUnlimited": "Passer à Pro — transcriptions illimitées"
   },
   "notes": {
+    "sidebar": {
+      "newNote": "Nouvelle note",
+      "searchNotes": "Rechercher des notes"
+    },
     "folders": {
       "title": "Dossiers",
       "soon": "Bientôt",

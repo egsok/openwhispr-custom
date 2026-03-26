@@ -1532,6 +1532,10 @@
     }
   },
   "notes": {
+    "sidebar": {
+      "newNote": "Новая заметка",
+      "searchNotes": "Поиск заметок"
+    },
     "folders": {
       "title": "Папки",
       "soon": "Скоро",

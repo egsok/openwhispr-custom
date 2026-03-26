@@ -1532,6 +1532,10 @@
     }
   },
   "notes": {
+    "sidebar": {
+      "newNote": "Neue Notiz",
+      "searchNotes": "Notizen suchen"
+    },
     "folders": {
       "title": "Ordner",
       "soon": "Demnächst",

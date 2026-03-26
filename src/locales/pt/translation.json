@@ -1532,6 +1532,10 @@
     }
   },
   "notes": {
+    "sidebar": {
+      "newNote": "Nova nota",
+      "searchNotes": "Pesquisar notas"
+    },
     "folders": {
       "title": "Pastas",
       "soon": "Em breve",

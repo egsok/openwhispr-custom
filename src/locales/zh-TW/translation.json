@@ -1527,6 +1527,10 @@
     }
   },
   "notes": {
+    "sidebar": {
+      "newNote": "新增筆記",
+      "searchNotes": "搜尋筆記"
+    },
     "folders": {
       "title": "資料夾",
       "soon": "即將推出",
