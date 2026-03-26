@@ -18,7 +18,7 @@ const REALTIME_MODELS = new Set(["gpt-4o-mini-transcribe", "gpt-4o-transcribe"])
 // Punctuation prompt for Russian — Whisper tends to drop punctuation for Russian speech.
 // Providing a prompt with varied punctuation nudges the autoregressive decoder to keep producing it.
 const PUNCTUATION_PROMPT_RU =
-  'Итак, давайте начнём. Сегодня мы обсудим важные вещи, которые помогут вам разобраться в ситуации. Вот основные вопросы: что делать? как быть? и куда двигаться дальше.';
+  'Привет, как дела? Я думаю, что стоит попробовать! Вот что он сказал: «Давайте сделаем это сегодня — пока есть время». Конечно, не всё так просто; нужно учитывать несколько факторов.';
 
 const PLACEHOLDER_KEYS = {
   openai: "your_openai_api_key_here",
