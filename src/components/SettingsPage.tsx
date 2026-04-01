@@ -392,6 +392,7 @@ function TranscriptionSection({
           variant="settings"
         />
       )}
+      <GpuDeviceSelector purpose="transcription" />
     </div>
   );
 }
@@ -619,8 +620,57 @@ function AiModelsSection({
               setCustomReasoningApiKey={setCustomReasoningApiKey}
             />
           )}
+          <GpuDeviceSelector purpose="intelligence" />
         </>
       )}
+    </div>
+  );
+}
+
+function GpuDeviceSelector({ purpose }: { purpose: "transcription" | "intelligence" }) {
+  const { t } = useTranslation();
+  const [gpus, setGpus] = useState<Array<{ index: number; name: string; vramMb: number }>>([]);
+  const [selectedIndex, setSelectedIndex] = useState("0");
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    Promise.all([
+      window.electronAPI?.listGpus?.() ?? Promise.resolve([]),
+      window.electronAPI?.getGpuDeviceIndex?.(purpose) ?? Promise.resolve("0"),
+    ]).then(([gpuList, idx]) => {
+      setGpus(gpuList);
+      setSelectedIndex(idx);
+      setLoaded(true);
+    });
+  }, [purpose]);
+
+  if (!loaded || gpus.length < 2) return null;
+
+  return (
+    <div className="border-t border-border/40 pt-4 mt-4">
+      <SectionHeader
+        title={t(`settingsPage.${purpose}.gpuDevice.title`)}
+        description={t(`settingsPage.${purpose}.gpuDevice.description`)}
+      />
+      <SettingsPanel>
+        <SettingsPanelRow>
+          <select
+            value={selectedIndex}
+            onChange={async (e) => {
+              const idx = e.target.value;
+              setSelectedIndex(idx);
+              await window.electronAPI?.setGpuDeviceIndex?.(purpose, Number(idx));
+            }}
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          >
+            {gpus.map((gpu) => (
+              <option key={gpu.index} value={String(gpu.index)}>
+                GPU {gpu.index}: {gpu.name} ({Math.round(gpu.vramMb / 1024)}GB)
+              </option>
+            ))}
+          </select>
+        </SettingsPanelRow>
+      </SettingsPanel>
     </div>
   );
 }
@@ -2770,6 +2820,7 @@ EOF`,
                 })()}
               </div>
             )}
+
           </div>
         );
 
@@ -3397,6 +3448,7 @@ EOF`,
                 </div>
               )}
             </div>
+
           </div>
         );
 

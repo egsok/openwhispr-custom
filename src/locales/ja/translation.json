@@ -1385,6 +1385,16 @@
           "description": "独自のプロバイダーと API キーを設定してください。",
           "title": "カスタム設定に切り替えました"
         }
+      },
+      "gpuDevice": {
+        "title": "文字起こしGPU",
+        "description": "ローカル音声認識に使用するGPU"
+      }
+    },
+    "intelligence": {
+      "gpuDevice": {
+        "title": "GPUデバイス",
+        "description": "ローカル文字起こしとAI処理に使用するGPUを選択"
       }
     }
   },

@@ -1433,6 +1433,16 @@
           "description": "Configure your own provider and API key.",
           "title": "Switched to Custom Setup"
         }
+      },
+      "gpuDevice": {
+        "title": "Transcription GPU",
+        "description": "GPU used for local speech-to-text"
+      }
+    },
+    "intelligence": {
+      "gpuDevice": {
+        "title": "GPU Device",
+        "description": "Select which GPU to use for local transcription and AI processing"
       }
     }
   },
