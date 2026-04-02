@@ -118,8 +118,7 @@ class AudioTapManager {
     this._requestPromise = this._probeForAccess()
       .catch((error) => {
         const status = error.code === "permission_denied" ? "denied" : "unknown";
-        if (status !== "unknown") this._persistPermissionStatus(status);
-        else this.permissionStatus = status;
+        this._persistPermissionStatus(status);
         return { granted: false, status, error: error.message };
       })
       .finally(() => {
