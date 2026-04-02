@@ -346,10 +346,11 @@ export default function PersonalNotesView({
   const handleMoveToFolder = useCallback(
     async (noteId: number, folderId: number) => {
       await window.electronAPI.updateNote(noteId, { folder_id: folderId });
-      if (activeFolderId) await initializeNotes(null, 50, activeFolderId);
+      // During meeting mode, keep the note visible — don't re-filter by folder
+      if (activeFolderId && !isMeetingMode) await initializeNotes(null, 50, activeFolderId);
       loadFolders();
     },
-    [activeFolderId, loadFolders]
+    [activeFolderId, isMeetingMode, loadFolders]
   );
 
   const { dragState, noteDragHandlers, folderDropHandlers } = useNoteDragAndDrop({
@@ -362,7 +363,7 @@ export default function PersonalNotesView({
       const result = await window.electronAPI.createFolder(folderName);
       if (result.success && result.folder) {
         await window.electronAPI.updateNote(noteId, { folder_id: result.folder.id });
-        if (activeFolderId) await initializeNotes(null, 50, activeFolderId);
+        if (activeFolderId && !isMeetingMode) await initializeNotes(null, 50, activeFolderId);
         await loadFolders();
       } else if (result.error) {
         toast({
@@ -372,7 +373,7 @@ export default function PersonalNotesView({
         });
       }
     },
-    [activeFolderId, loadFolders, toast, t]
+    [activeFolderId, isMeetingMode, loadFolders, toast, t]
   );
 
   const handleApplyEnhancement = useCallback(
