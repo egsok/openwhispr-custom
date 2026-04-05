@@ -1369,7 +1369,7 @@
       },
       "transcriptionPrompt": {
         "title": "Prompt de transcrição",
-        "description": "O Whisper imita o estilo de formatação deste prompt — inclua pontuação variada (vírgulas, travessões, aspas) para obter texto pontuado. No modo \"auto\", o idioma do prompt também afeta a detecção de idioma. Palavras do dicionário são adicionadas automaticamente.",
+        "description": "O Whisper imita o estilo de formatação deste prompt — inclua pontuação variada (vírgulas, travessões, aspas) para obter texto pontuado. No modo \"auto\", o idioma do prompt também afeta a detecção de idioma. Compartilha o orçamento de tokens com o dicionário personalizado — um prompt mais curto deixa mais espaço para as palavras do dicionário.",
         "placeholder": "Digite um parágrafo bem pontuado para guiar o estilo de transcrição...",
         "insertPreset": "Inserir modelo"
       },

@@ -172,7 +172,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     const dict = this.getCustomDictionaryPrompt();
     if (dict) parts.push(dict);
 
-    // Custom prompt LAST — survives truncation (higher priority)
+    // Custom prompt LAST — Whisper truncates initial_prompt from the LEFT (keeps rightmost tokens),
+    // so the custom prompt at the end survives truncation. See: whisper.cpp tokenize logic.
     const customPrompt = (getSettings().customTranscriptionPrompt || "").trim().replace(/\s+/g, " ");
     if (customPrompt) parts.push(customPrompt);
 
